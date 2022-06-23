@@ -1,0 +1,132 @@
+---
+title: "Power analysis"
+author: "Andreas Gschwind"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+### Goal
+Exploration of power simulation results from the `r snakemake@wildcards$sample` dataset.
+
+```{r requiredPackages, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(cowplot)
+```
+
+***
+
+### Power across effect sizes
+Power across all effect sizes is plotted across all tested .
+
+```{r}
+# column types in results file
+results_cols <- cols(
+  .default = col_double(),  # for power columns, which can vary in names
+  perturbation = col_character(),
+  gene = col_character(),
+  logFC = col_double(),
+  ci_high = col_double(),
+  ci_low = col_double(),
+  pvalue = col_double(),
+  pval_adj = col_double(),
+  pert_chr = col_character(),
+  pert_start = col_double(),
+  pert_end = col_double(),
+  gene_chr = col_character(),
+  gene_tss = col_double(),
+  gene_strand = col_character(),
+  dist_to_tss = col_double(),
+  pert_level = col_character(),
+  target_type = col_character(),
+  cells = col_double(),
+  avg_expr = col_double(),
+  disp_outlier_deseq2 = col_logical()
+)
+
+# load results
+results <- read_tsv(snakemake@input[[1]], col_types = results_cols, progress = FALSE)
+```
+
+```{r, fig.height=4, fig.width=8}
+# extract power and reformat
+power <- results %>% 
+  select(perturbation, gene, avg_expr, cells, starts_with("power_effect_size_")) %>%
+  pivot_longer(cols = starts_with("power_effect_size_"), names_to = "effect_size",
+               values_to = "power") %>% 
+  mutate(effect_size = sub("power_effect_size_(.+)", "\\1%", effect_size))
+
+# set power to 0 for any pairs with power = NA
+power <- replace_na(power, replace = list(power = 0))
+
+# add power rank and percent of pairs
+power <- power %>% 
+  group_by(effect_size) %>% 
+  arrange(desc(power)) %>% 
+  mutate(power_rank = seq_len(n()),
+         power_pct = power_rank / n())
+
+# plot power distribution
+p1 <- ggplot(power, aes(x = power_pct, y = power, color = effect_size)) +
+  geom_hline(yintercept = 0.8, lty = "dashed") +
+  geom_line(lwd = 1) +
+  labs(title = "Power all tested pairs", y = "Power", x = "Tested perturbation-gene pairs",
+       color = "Effect size") +
+  scale_x_continuous(labels = scales::percent) +
+  theme_bw() +
+  theme(text = element_text(size = 12))
+
+# filter for pairs with >= 0.8 power
+power_80 <- filter(power, power >= 0.8)
+
+# plot number of pairs at 80% power
+p2 <- ggplot(power_80, aes(x = effect_size, fill = effect_size)) +
+  geom_bar() +
+  scale_y_continuous(limits = c(0, nrow(results))) +
+  labs(x = "Effect size", y = "Tested perturbation-gene pairs", title = "80% power") +
+  theme_bw() +
+  theme(legend.position = "none", text = element_text(size = 12))
+
+# print plots as one figure
+plot_grid(p2, p1, ncol = 2, rel_widths = c(0.33, 0.66))
+```
+
+***
+
+### Power vs expression and perturbed cells
+Power is plotted as a function of gene expression levels and number of perturbed cells per
+perturbation.
+
+```{r, fig.width=6, fig.height=3.5}
+# add cell number and gene expression quantiles for each etp 
+power <- power %>% 
+  mutate(cells_quant = cut(cells, breaks = quantile(cells), include.lowest = TRUE)) %>% 
+  mutate(expr_quant = cut(avg_expr, breaks = quantile(avg_expr, probs = seq(0, 1, 0.1)),
+                          include.lowest = TRUE))
+
+# compute average transcripts per expression quantile
+avg_expr_quants <- power %>% 
+  group_by(expr_quant) %>% 
+  summarize(mean_expr = mean(avg_expr))
+
+# compute average power and expression per quantile
+binned_power <- power %>%
+  group_by(effect_size, cells_quant, expr_quant) %>% 
+  summarize(mean_power = mean(power), .groups = "drop") %>% 
+  left_join(avg_expr_quants, by = "expr_quant")
+
+# plot binned power
+ggplot(binned_power,
+       aes(x = mean_expr, y = mean_power, color = effect_size, linetype = cells_quant)) +
+  geom_hline(yintercept = 0.8, lty = "dashed") +
+  geom_line() +
+  geom_point() +
+  labs(title = "Power vs expression", x = "Avgerage expression (decentiles)", y = "Power",
+       linetype = "Pert. cells", color = "Effect size") +
+  scale_x_log10() +
+  theme_bw() +
+  theme(text = element_text(size = 12))
+```

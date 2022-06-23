@@ -1,0 +1,45 @@
+
+# input files and parameters for each sample to be analyzed
+samples:
+  example:
+    dge: "path/to/dge.txt.gz"
+    pert: "path/to/perturb_status.txt.gz"
+    annot: "resources/gencode.v29.annotation.gtf.gz"
+    guide_targets: "path/to/guide_targets.tsv"
+    cell_metadata: "path/to/cell_metadata.tsv"
+    dge_vector_pattern: "^CROPseq_dCas9_DS_.+$"
+    tss_ctrl_label: "TSSCtrl"
+
+# urls to download data
+download_urls:
+  gencode.v29: "http://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_29/gencode.v29.annotation.gtf.gz"
+
+# workflow parameters ------------------------------------------------------------------------------
+  
+# specify which samples should be split by chromosome when performing DE tests and power simulations
+split_by_chr:
+  TAPseq_example: False
+
+# parameters for differential expression tests to map perturbations to target genes
+diff_expr:
+  umis_per_cell: [1, 6000]
+  min_cells:
+    perGRNA: 15
+    perCRE:  25
+  max_dist: NULL
+  formula: "~pert+scale(detected_genes)"
+  n_ctrl: 3500
+  cell_batches: NULL
+  padj_method: "fdr"
+  padj_threshold: 0.05
+  threads: 1
+
+# parameters for power simulations to estimate statistical power for every perturbation-gene pair
+power_simulations:
+  effect_sizes: [0.15, 0.25]
+  remove_genes: "HBE1"
+  size_factors: "poscounts"
+  fit_type: "parametric"
+  norm: "real"
+  rep: 20
+  threads: 1

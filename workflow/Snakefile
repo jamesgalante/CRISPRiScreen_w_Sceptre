@@ -1,0 +1,29 @@
+
+# config file containing parameters
+configfile: "config/config.yml"
+
+# workflow rules
+include: "rules/create_input_and_output.smk"
+include: "rules/perform_diff_expr_tests.smk"
+include: "rules/perform_power_simulations.smk"
+
+# perform all differential expression and power analyses to create main output files
+rule all:
+  input:
+    de_analysis = expand("results/{sample}/diff_expr_MAST_{pert_level}.html",
+      sample = config["samples"], pert_level = ["perCRE"]),
+    power_analysis = expand("results/{sample}/power_analysis_{sd}gStd_MAST_{pert_level}.html",
+      sample = config["samples"], sd = 0.13, pert_level = "perCRE")
+
+# perform DE tests only
+rule all_de_tests:
+  input:
+    expand("results/{sample}/diff_expr_MAST_{pert_level}.html",
+      sample = config["samples"], pert_level = ["perCRE"])
+      
+# perform all power simulations
+rule all_pwr_sims:
+  input:
+    expand("results/{sample}/power_sim/power_{effect_size}_{sd}gStd_MAST_perCRE.tsv.gz",
+      sample = config["samples"], effect_size = config["power_simulations"]["effect_sizes"],
+      sd = 0.13)
