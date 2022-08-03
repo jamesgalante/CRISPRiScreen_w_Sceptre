@@ -16,7 +16,7 @@ rule all:
       sample = config["samples"], sd = 0.13, pert_level = "perCRE")
 
 # perform DE tests only
-rule perform_de_tests:
+rule perform_all_de_tests:
   input:
     expand("results/{sample}/diff_expr_MAST_{pert_level}.html",
       sample = config["samples"], pert_level = ["perCRE"])
