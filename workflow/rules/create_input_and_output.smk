@@ -31,7 +31,7 @@ rule create_sce:
   output: "resources/{sample}/perturb_sce.rds"
   log: "resources/{sample}/logs/create_sce.log"
   params:
-    vector_pattern = "^CROPseq_dCas9_DS_.+$"
+    vector_pattern = lambda wildcards: config["samples"][wildcards.sample]["dge_vector_pattern"]
   conda: "../envs/analyze_crispr_screen.yml"
   script:
     "../scripts/create_sce_object.R"
