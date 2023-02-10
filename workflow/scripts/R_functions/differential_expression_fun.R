@@ -210,8 +210,8 @@ test_differential_expression <- function(sce, pert_level, max_dist = NULL,
   # convert output into one data.frame
   output <- bind_rows(output, .id = "perturbation")
   
-  # correct for multiple testing for all performed tests
-  if (method != "LFC") {
+  # correct for multiple testing for all performed tests (if applicable)
+  if ("pvalue" %in% colnames(output)) {
     output$pval_adj <- p.adjust(output$pvalue, method = p_adj_method)
     output <- output[order(output$pval_adj), ]
   }
