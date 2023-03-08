@@ -83,7 +83,8 @@ create_pert_sce <- function(expr, annot, pert_status, grna_annot, cell_metadata 
     }
     
     # merge cell_stats and additional cell_metadata
-    cell_stats <- merge(cell_stats, cell_metadata, all.x = TRUE, by.x = "cell_barcode", by.y = 1)
+    cell_stats <- merge(cell_stats, cell_metadata, all.x = TRUE, by.x = "cell_barcode", by.y = 1,
+                        sort = FALSE)
      
   }
   
