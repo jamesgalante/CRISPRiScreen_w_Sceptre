@@ -18,7 +18,7 @@ split_samples_wildcards = "|".join(split_samples)
 
 # perform differential expression tests for all cis perturbation - gene pairs in the dataset
 rule perform_de_tests:
-  input: "resources/{sample}/perturb_sce.rds"
+  input: "results/{sample}/perturb_sce.rds"
   output: "results/{sample}/diff_expr/output_{method}_{strategy}.tsv.gz"
   params:
     umis_per_cell = config["diff_expr"]["umis_per_cell"],
@@ -42,7 +42,7 @@ rule perform_de_tests:
 
 # extract data for one chromosome
 rule extract_chromosome:
-  input: "resources/{sample}/perturb_sce.rds"
+  input: "results/{sample}/perturb_sce.rds"
   output: temp("resources/{sample}/perturb_sce.{chr}.rds")
   params:
     rm_zero_cells = True

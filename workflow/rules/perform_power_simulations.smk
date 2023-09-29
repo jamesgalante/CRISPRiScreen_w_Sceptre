@@ -17,7 +17,7 @@ split_samples_wildcards = "|".join(split_samples)
 
 # fit negative binomial distribution to estimate dispersions
 rule fit_negbinom_distr:
-  input: "resources/{sample}/perturb_sce.rds"
+  input: "results/{sample}/perturb_sce.rds"
   output: temp("resources/{sample}/perturb_sce_disp.rds")
   params:
     umis_per_cell = config["diff_expr"]["umis_per_cell"],

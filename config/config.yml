@@ -2,11 +2,11 @@
 # input files and parameters for each sample to be analyzed
 samples:
   example:
-    dge: "path/to/dge.txt.gz"
-    pert: "path/to/perturb_status.txt.gz"
+    dge: "resources/TAPseq_example/dge.txt.gz"
+    pert: "resources/TAPseq_example/perturb_status.txt.gz"
     annot: "resources/gencode.v29.annotation.gtf.gz"
-    guide_targets: "path/to/guide_targets.tsv"
-    cell_metadata: "path/to/cell_metadata.tsv"
+    guide_targets: "resources/TAPseq_example/guide_targets.tsv"
+    cell_metadata: NULL
     dge_vector_pattern: "^CROPseq_dCas9_DS_.+$"
     tss_ctrl_label: "TSSCtrl"
 

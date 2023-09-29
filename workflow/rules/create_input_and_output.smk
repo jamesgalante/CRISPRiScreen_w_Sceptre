@@ -28,8 +28,8 @@ rule create_sce:
     guide_targets = lambda wildcards: config["samples"][wildcards.sample]["guide_targets"],
     annot = lambda wildcards: config["samples"][wildcards.sample]["annot"],
     cell_metadata = get_cell_metadata
-  output: "resources/{sample}/perturb_sce.rds"
-  log: "resources/{sample}/logs/create_sce.log"
+  output: "results/{sample}/perturb_sce.rds"
+  log: "results/{sample}/logs/create_sce.log"
   params:
     vector_pattern = lambda wildcards: config["samples"][wildcards.sample]["dge_vector_pattern"]
   conda: "../envs/analyze_crispr_screen.yml"
