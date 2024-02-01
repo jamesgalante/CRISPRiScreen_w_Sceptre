@@ -31,8 +31,11 @@ rule create_sce:
   output: "results/{sample}/perturb_sce.rds"
   log: "results/{sample}/logs/create_sce.log"
   params:
-    vector_pattern = lambda wildcards: config["samples"][wildcards.sample]["dge_vector_pattern"]
+    vector_pattern = lambda wildcards: config["samples"][wildcards.sample]["dge_vector_pattern"],
+    gene_ids = lambda wildcards: config["samples"][wildcards.sample]["gene_ids"]
   conda: "../envs/analyze_crispr_screen.yml"
+  resources:
+    mem = "32G"
   script:
     "../scripts/create_sce_object.R"
     

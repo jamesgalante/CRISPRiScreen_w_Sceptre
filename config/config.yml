@@ -9,6 +9,7 @@ samples:
     cell_metadata: NULL
     dge_vector_pattern: "^CROPseq_dCas9_DS_.+$"
     tss_ctrl_label: "TSSCtrl"
+    gene_ids: "gene_name"
 
 # urls to download data
 download_urls:

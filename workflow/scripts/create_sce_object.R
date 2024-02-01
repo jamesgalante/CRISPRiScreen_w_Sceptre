@@ -1,5 +1,8 @@
 ## Create a Perturb-seq SingleCellExperiment object from TAP-seq processing workflow output
 
+# save.image("create_sce.rda")
+# stop()
+
 # opening log file to collect all messages, warnings and errors
 log <- file(snakemake@log[[1]], open = "wt")
 sink(log)
@@ -87,9 +90,23 @@ message("Getting TSS annotations...")
 # load gene annotations
 annot <- import(snakemake@input$annot)
 
-# extract gene locus annotations and set names to gene names
+# extract gene locus annotations and set names to gene ids specified in config file
 genes <- annot[annot$type == "gene"]
-names(genes) <- genes$gene_name
+
+# get user specified gene ids, if provided else use 'gene_name' as default
+if (!is.null(snakemake@params$gene_ids)) {
+  gene_ids <- snakemake@params$gene_ids
+} else {
+  gene_ids <- "gene_name"
+}
+
+# check that gene id column exists in gene annotations
+if (!gene_ids %in% colnames(mcols(genes))) {
+  stop("Gene identifier '", gene_ids, "' not found in genome annotations.", call. = FALSE)
+}
+
+# set index names of gene annotations to specified gene identifiers
+names(genes) <- mcols(genes)[[gene_ids]]
 
 # calculate TSS coordinates
 gene_tss <- resize(genes, width = 1, fix = "start")
