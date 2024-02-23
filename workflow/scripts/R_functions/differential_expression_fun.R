@@ -494,7 +494,7 @@ pert_input_sampled <- function(pert, sce, pert_level, cell_batches, n_ctrl) {
         sample(cells_batch, size = ctrl_cell_numbers[batch], replace = FALSE)
       })
       ctrl_cells <- unlist(ctrl_cells)
-      return(ctrl_cells)
+     # return(ctrl_cells)
     
     }, error = function(e) {
       
