@@ -9,6 +9,12 @@ output: html_document
 knitr::opts_chunk$set(echo = FALSE)
 ```
 
+### Save Image for Debugging
+```{r}
+save.image("power_analysis_markdown.rda")
+#stop()
+```
+
 ### Goal
 Exploration of power simulation results from the `r snakemake@wildcards$sample` dataset.
 
@@ -48,7 +54,6 @@ results_cols <- cols(
   avg_expr = col_double(),
   disp_outlier_deseq2 = col_logical()
 )
-
 # load results
 results <- read_tsv(snakemake@input[[1]], col_types = results_cols, progress = FALSE)
 ```
@@ -108,9 +113,18 @@ then plotted as a function of detected UMIs for each cells per perturbation quar
 
 ```{r, fig.width=6, fig.height=4}
 # add cell number and gene expression quantiles for each ETP
-power <- power %>% 
-  mutate(cells_quant = cut(cells, breaks = quantile(cells), include.lowest = TRUE)) %>% 
-  mutate(expr_quant = cut(avg_expr, breaks = quantile(avg_expr, probs = seq(0, 1, 0.1)),
+# power <- power %>%
+#   mutate(cells_quant = cut(cells, breaks = quantile(cells), include.lowest = TRUE)) %>%
+#   mutate(expr_quant = cut(avg_expr, breaks = quantile(avg_expr, probs = seq(0, 1, 0.1)),
+#                           include.lowest = TRUE))
+
+# Sometimes there are multiple bins with low power, so we add a tiny bit of noise so that there are unique bins
+set.seed(123) # for reproducibility
+power <- power %>%
+  mutate(cells_quant = cut(cells, breaks = quantile(cells, na.rm = TRUE), include.lowest = TRUE)) %>%
+  mutate(avg_expr_jittered = avg_expr + runif(n = n(), min = -1e-6, max = 1e-6),
+         expr_quant = cut(avg_expr_jittered, 
+                          breaks = quantile(avg_expr_jittered, probs = seq(0, 1, 0.1), na.rm = TRUE),
                           include.lowest = TRUE))
 
 # compute average transcripts per expression quantile

@@ -207,6 +207,22 @@ test_differential_expression <- function(sce, pert_level, max_dist = NULL,
                      de_function = de_function, max_dist = max_dist, formula = formula,
                      n_ctrl = n_ctrl)
   
+  
+  
+  
+  ### START ADDED LINES
+  # Count and inform how many perturbations were skipped due to insufficient control cells
+  # skipped_perts <- sum(sapply(output, is.null))
+  # if (skipped_perts > 0) {
+  #   message(skipped_perts, " perturbations were skipped due to insufficient control cells.")
+  # }
+  # 
+  # # Remove NULL values from the output list
+  # output <- output[sapply(output, function(x) !is.null(x))]
+  ### END ADDED LINES
+  
+  
+  
   # convert output into one data.frame
   output <- bind_rows(output, .id = "perturbation")
   
@@ -415,6 +431,15 @@ test_de <- function(pert, sce, pert_level, cell_batches, pert_input_function, ma
                                      cell_batches = cell_batches, n_ctrl = n_ctrl)
   
   
+  ### START ADDED LINES
+  # # Check if pert_object is NULL and return NULL if so
+  # if (is.null(pert_object)) {
+  #   message("Skipping differential expression test for perturbation '", pert, "' due to insufficient control cells.")
+  #   return(NULL)
+  # }
+  ### END ADDED LINES
+  
+  
   # only retain genes within maximum distance if specified
   if (!is.null(max_dist)) {
     message("Filtering for genes within ", max_dist, " basepairs from perturbation.")
@@ -462,13 +487,24 @@ pert_input <- function(pert, sce, pert_level, ...) {
 
 # generate input for one perturbation
 pert_input_sampled <- function(pert, sce, pert_level, cell_batches, n_ctrl) {
-  
+
   message("Creating input for perturbation '", pert, "' with ", n_ctrl, " sampled control cells.")
   
   # get perturbed cells for specified perturbation
   pert_data <- assay(altExp(sce, pert_level), "perts")
   pert_data <- pert_data[pert, ]
   pert_cells <- pert_data > 0
+  
+  
+  ### START ADDED LINES
+  # # Check to make sure there are enough available ctrl_cells
+  # available_ctrl_cells <- colnames(sce[, !pert_cells])
+  # if(length(available_ctrl_cells) < n_ctrl) {
+  #   message("The available number of control cells: '", length(available_ctrl_cells), "' is less the n_ctrl parameter: ", n_ctrl)
+  #   message("The number of perturbed cells is: '", length(colnames(sce[, pert_cells])), "' and the number of total cells is: ", length(colnames(sce)))
+  #   return(NULL)
+  # }
+  ### END ADDED LINES
   
   # randomly draw 'n_ctrl' control cells with same batch distribution as perturbed cells if provided
   if (!is.null(cell_batches)) {

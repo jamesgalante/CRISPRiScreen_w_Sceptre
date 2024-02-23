@@ -1,11 +1,12 @@
-
 # input files and parameters for each sample to be analyzed
 samples:
-  example:
-    dge: "resources/TAPseq_example/dge.txt.gz"
-    pert: "resources/TAPseq_example/perturb_status.txt.gz"
+  Klann_First:
+    dge: "resources/Klann_First/dge.txt.gz"
+    pert: "resources/Klann_First/perturb_status.txt.gz"
+    raw_pert: "resources/Klann_First/Sceptre/raw_perturb_status.txt.gz"
     annot: "resources/gencode.v29.annotation.gtf.gz"
-    guide_targets: "resources/TAPseq_example/guide_targets.tsv"
+    guide_targets: "resources/Klann_First/guide_targets.tsv"
+    guide_targets_w_NT: "resources/Klann_First/Sceptre/guide_targets_w_NT.tsv"
     cell_metadata: NULL
     dge_vector_pattern: "^CROPseq_dCas9_DS_.+$"
     tss_ctrl_label: "TSSCtrl"
@@ -15,18 +16,18 @@ download_urls:
   gencode.v29: "http://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_29/gencode.v29.annotation.gtf.gz"
 
 # workflow parameters ------------------------------------------------------------------------------
-  
+
 # specify which samples should be split by chromosome when performing DE tests and power simulations
 split_by_chr:
-  TAPseq_example: False
+  Klann_First: True
 
 # parameters for differential expression tests to map perturbations to target genes
 diff_expr:
-  umis_per_cell: [1, 6000]
+  umis_per_cell: [0, Inf]
   min_cells:
     perGRNA: 15
     perCRE:  25
-  max_dist: NULL
+  max_dist: 2e6
   formula: "~pert+scale(detected_genes)"
   n_ctrl: 3500
   cell_batches: NULL
@@ -37,9 +38,34 @@ diff_expr:
 # parameters for power simulations to estimate statistical power for every perturbation-gene pair
 power_simulations:
   effect_sizes: [0.15, 0.25]
-  remove_genes: "HBE1"
+  remove_genes: NULL
   size_factors: "poscounts"
   fit_type: "parametric"
   norm: "real"
   rep: 20
   threads: 1
+
+# parameters for sceptre differential expression
+sceptre_diff_expr:
+  sample_number: "All"
+  guides_pre_assigned: "no"
+  moi: "high"
+  side: "left"
+  grna_integration_strategy: "union"
+  guide_assignment_method: "mixture"
+  do_pos: "yes"
+
+# parameters for sceptre power analysis
+sceptre_pwr_anal:
+  batches: 98
+  n_pert: "all"
+  effect_size: 0.15
+  reps: 20
+  center: FALSE
+
+
+
+
+
+
+

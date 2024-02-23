@@ -1,4 +1,7 @@
 ## Fit negative binomial distributions for each gene using DESeq2
+#save.image("fit_negbinom.rda")
+#print("saved imaged")
+#stop()
 
 # opening log file to collect all messages, warnings and errors
 log <- file(snakemake@log[[1]], open = "wt")
@@ -15,7 +18,7 @@ suppressPackageStartupMessages({
 # load prepared input data stored in SingleCellExperiment object
 message("Loading input data.")
 sce <- readRDS(snakemake@input[[1]])
-
+  
 # filter cells for minimum and maximum number total UMIs per cell
 sce <- filter_umis_per_cell(sce, min_umis = snakemake@params$umis_per_cell[[1]],
                             max_umis = snakemake@params$umis_per_cell[[2]])
@@ -28,6 +31,7 @@ message("Estimate dispersion using DESeq2:")
 sce <- fit_negbinom_deseq2(sce, size_factors = snakemake@params$size_factors,
                            fit_type = snakemake@params$fit_type)
 
+
 # save output sce to file
 saveRDS(sce, file = snakemake@output[[1]])
 
@@ -35,3 +39,8 @@ saveRDS(sce, file = snakemake@output[[1]])
 sink()
 sink(type = "message")
 close(log)
+
+
+
+
+

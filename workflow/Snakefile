@@ -6,6 +6,7 @@ configfile: "config/config.yml"
 include: "rules/create_input_and_output.smk"
 include: "rules/perform_diff_expr_tests.smk"
 include: "rules/perform_power_simulations.smk"
+include: "rules/sceptre_helper_rules.smk"
 
 # perform all differential expression and power analyses to create main output files
 rule all:
@@ -13,10 +14,18 @@ rule all:
     de_analysis = expand("results/{sample}/diff_expr_MAST_{pert_level}.html",
       sample = config["samples"], pert_level = ["perCRE"]),
     power_analysis = expand("results/{sample}/power_analysis_{sd}gStd_MAST_{pert_level}.html",
-      sample = config["samples"], sd = 0.13, pert_level = "perCRE")
+      sample = config["samples"], sd = 0.13, pert_level = "perCRE"),
+    sceptre_analysis = expand("results/{sample}/final_sceptre_output/output_0.13gStd_MAST_perCRE.tsv",
+      sample = config["samples"])
 
 # perform DE tests only
 rule perform_all_de_tests:
   input:
     expand("results/{sample}/diff_expr_MAST_{pert_level}.html",
       sample = config["samples"], pert_level = ["perCRE"])
+
+# perform Sceptre analysis
+rule perform_sceptre_analysis:
+  input:
+    expand("results/{sample}/final_sceptre_output/output_0.13gStd_MAST_perCRE.tsv",
+      sample = config["samples"])

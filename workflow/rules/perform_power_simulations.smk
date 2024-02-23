@@ -27,7 +27,7 @@ rule fit_negbinom_distr:
   log: "results/{sample}/logs/power_sim/fit_negbinom_distr.log"
   conda: "../envs/analyze_crispr_screen.yml"
   resources:
-    mem = "32G",
+    mem = "64G",
     time = "5:00:00"
   script:
     "../scripts/fit_negbinom_distr.R"
@@ -49,7 +49,7 @@ rule perform_power_simulations:
   threads: config["power_simulations"]["threads"]
   conda: "../envs/analyze_crispr_screen.yml"
   resources:
-    mem = "24G",
+    mem = "64G",
     time = "24:00:00"
   script:
    "../scripts/power_simulations.R"

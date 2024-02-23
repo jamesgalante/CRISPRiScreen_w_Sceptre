@@ -56,7 +56,7 @@ message("Normalizing transcript counts.")
 sce <- normalize_cens_mean(sce)
 assay(sce, "logcounts") <- log1p(assay(sce, "normcounts"))
 
-# ensure that max distance if numeric if not NULL
+# ensure that max distance is numeric if not NULL
 if (!is.null(snakemake@params$max_dist)) {
   max_dist <- as.numeric(snakemake@params$max_dist)
 } else {
@@ -69,32 +69,90 @@ effect_size <- 1 - as.numeric(snakemake@wildcards$effect)
 # get differential expression function based on method from wildcards
 de_function <- get(paste0("de_", method))
 
-# simulate Perturb-seq data and perform differential gene expression tests
-message("Performing power simulations.")
-output <- simulate_diff_expr(sce, effect_size = effect_size,
-                             pert_level = pert_level,
-                             max_dist = max_dist,
-                             genes_iter = snakemake@params$genes_iter,
-                             guide_sd = as.numeric(snakemake@wildcards$sd),
-                             center = FALSE,
-                             rep = 1,
-                             norm = snakemake@params$norm,
-                             de_function = de_function,
-                             formula = as.formula(snakemake@params$formula),
-                             n_ctrl = snakemake@params$n_ctrl,
-                             cell_batches = snakemake@params$cell_batches)
 
-# change iteration to correct repetition number (is 1 in output, since rep = 1 was used)
-output$iteration <- as.integer(snakemake@wildcards$rep)
 
-# extract DESeq2 outlier information for every gene
-message("Processing output.")
-disp_outlier <- data.frame(gene = rownames(rowData(sce)),
-                           disp_outlier_deseq2 = rowData(sce)[, "disp_outlier_deseq2"],
-                           stringsAsFactors = FALSE)
+### START NEW CODE - FOR THE CASE THAT A CHROMOSOME (WHEN BY_CHROM = TRUE) IS EMPTY - ORIGINAL IS COMMENTED OUT BELOW
 
-# add to output
-output <- left_join(output, disp_outlier, by = "gene")
+if (dim(altExp(sce, pert_level))[[1]] == 0) {
+  
+  # If the sce object has no perturbations, create an empty dataframe with the correct column names
+  message("No perturbations on this chromosome")
+  
+  # Define the column names
+  column_names <- c("iteration", "perturbation", "gene", "perturbed", "logFC", 
+                    "ci_high", "ci_low", "pvalue", "disp_outlier_deseq2")
+  
+  # Create an empty dataframe with the specified column names
+  output <- data.frame(matrix(ncol = length(column_names), nrow = 0))
+  colnames(output) <- column_names
+  
+} else {
+  
+  # simulate Perturb-seq data and perform differential gene expression tests
+  message("Performing power simulations.")
+  output <- simulate_diff_expr(sce, effect_size = effect_size,
+                               pert_level = pert_level,
+                               max_dist = max_dist,
+                               genes_iter = snakemake@params$genes_iter,
+                               guide_sd = as.numeric(snakemake@wildcards$sd),
+                               center = FALSE,
+                               rep = 1,
+                               norm = snakemake@params$norm,
+                               de_function = de_function,
+                               formula = as.formula(snakemake@params$formula),
+                               n_ctrl = snakemake@params$n_ctrl,
+                               cell_batches = snakemake@params$cell_batches)
+
+  # change iteration to correct repetition number (is 1 in output, since rep = 1 was used)
+  output$iteration <- as.integer(snakemake@wildcards$rep)
+
+  # extract DESeq2 outlier information for every gene
+  message("Processing output.")
+  disp_outlier <- data.frame(gene = rownames(rowData(sce)),
+                             disp_outlier_deseq2 = rowData(sce)[, "disp_outlier_deseq2"],
+                             stringsAsFactors = FALSE)
+
+  # add to output
+  output <- left_join(output, disp_outlier, by = "gene")
+  
+}
+
+### END NEW CODE - FOR THE CASE THAT A CHROMOSOME (WHEN BY_CHROM = TRUE) IS EMPTY - ORIGINAL IS COMMENTED OUT BELOW
+
+
+
+
+
+# # simulate Perturb-seq data and perform differential gene expression tests
+# message("Performing power simulations.")
+# output <- simulate_diff_expr(sce, effect_size = effect_size,
+#                              pert_level = pert_level,
+#                              max_dist = max_dist,
+#                              genes_iter = snakemake@params$genes_iter,
+#                              guide_sd = as.numeric(snakemake@wildcards$sd),
+#                              center = FALSE,
+#                              rep = 1,
+#                              norm = snakemake@params$norm,
+#                              de_function = de_function,
+#                              formula = as.formula(snakemake@params$formula),
+#                              n_ctrl = snakemake@params$n_ctrl,
+#                              cell_batches = snakemake@params$cell_batches)
+# 
+# # change iteration to correct repetition number (is 1 in output, since rep = 1 was used)
+# output$iteration <- as.integer(snakemake@wildcards$rep)
+# 
+# # extract DESeq2 outlier information for every gene
+# message("Processing output.")
+# disp_outlier <- data.frame(gene = rownames(rowData(sce)),
+#                            disp_outlier_deseq2 = rowData(sce)[, "disp_outlier_deseq2"],
+#                            stringsAsFactors = FALSE)
+# 
+# # add to output
+# output <- left_join(output, disp_outlier, by = "gene")
+
+
+
+
 
 # save simulation output
 message("Saving output to file.")

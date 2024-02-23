@@ -33,7 +33,7 @@ rule perform_de_tests:
   threads: config["diff_expr"]["threads"]
   conda: "../envs/analyze_crispr_screen.yml"
   resources:
-    mem = "24G",
+    mem = "64G",
     time = "6:00:00"
   script:
     "../scripts/differential_expression.R"

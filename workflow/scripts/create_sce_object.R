@@ -1,5 +1,8 @@
 ## Create a Perturb-seq SingleCellExperiment object from TAP-seq processing workflow output
 
+save.image("sce.rda")
+#stop()
+
 # opening log file to collect all messages, warnings and errors
 log <- file(snakemake@log[[1]], open = "wt")
 sink(log)
@@ -89,7 +92,9 @@ annot <- import(snakemake@input$annot)
 
 # extract gene locus annotations and set names to gene names
 genes <- annot[annot$type == "gene"]
-names(genes) <- genes$gene_name
+# some of the genes are psuedoautosomal genes, so we can remove those because they will be duplicates
+genes <- genes[!grepl("_PAR_Y", genes$gene_id), ]
+names(genes) <- sub("\\..*", "", genes$gene_id)
 
 # calculate TSS coordinates
 gene_tss <- resize(genes, width = 1, fix = "start")

@@ -1,5 +1,7 @@
 ## Load power simulation output to compute power for one sample and effect size
 
+save.image("computer_pwr.rda")
+
 # required packages
 suppressPackageStartupMessages({
   library(dplyr)

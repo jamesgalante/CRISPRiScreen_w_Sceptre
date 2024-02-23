@@ -33,6 +33,8 @@ rule create_sce:
   params:
     vector_pattern = lambda wildcards: config["samples"][wildcards.sample]["dge_vector_pattern"]
   conda: "../envs/analyze_crispr_screen.yml"
+  resources:
+    mem = "32G"  # Changed from mem_mb to mem
   script:
     "../scripts/create_sce_object.R"
     
@@ -43,6 +45,8 @@ rule create_main_output:
     power_sim = expand("results/{{sample}}/power_sim/power_{effect}_{{sd}}gStd_{{method}}_{{strategy}}.tsv.gz",
                   effect = config["power_simulations"]["effect_sizes"])
   output: "results/{sample}/output_{sd}gStd_{method}_{strategy}.tsv.gz"
+  params:
+    size_factors = config["power_simulations"]["size_factors"]
   conda: "../envs/analyze_crispr_screen.yml"
   script:
     "../scripts/create_output.R"
@@ -69,3 +73,22 @@ rule power_analysis:
   conda: "../envs/analyze_crispr_screen.yml"
   script:
     "../scripts/power_analysis.Rmd"
+   
+# format sceptre output for compatibility with ENCODE pipelines
+rule format_sceptre_output:
+  input:
+    power_analysis_output = "results/{sample}/sceptre_pwr_analysis/power_analysis_output.tsv",
+    discovery_results = "results/{sample}/sceptre_diff_expr/discovery_result.txt",
+    gene_gRNA_group_pairs = "resources/{sample}/Sceptre/gene_gRNA_group_pairs.txt"
+  output:
+    "results/{sample}/final_sceptre_output/output_0.13gStd_MAST_perCRE.tsv"
+  params:
+    effect_size = config["sceptre_pwr_anal"]["effect_size"],
+    annot = lambda wildcards: config["samples"][wildcards.sample]["annot"]
+  log: "results/{sample}/logs/format_sceptre_output.log"
+  conda: "../envs/sceptre_pwr_env.yml"
+  resources:
+    mem = "32G",
+    time = "5:00:00"
+  script:
+    "../scripts/Sceptre_Scripts/format_sceptre_output.R"
