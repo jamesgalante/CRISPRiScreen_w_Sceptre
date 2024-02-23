@@ -7,7 +7,7 @@ samples:
     annot: "resources/gencode.v29.annotation.gtf.gz"
     guide_targets: "resources/Klann_First/guide_targets.tsv"
     guide_targets_w_NT: "resources/Klann_First/Sceptre/guide_targets_w_NT.tsv"
-    cell_metadata: NULL
+    cell_metadata: "resources/Klann_First/metadata.tsv.gz"
     dge_vector_pattern: "^CROPseq_dCas9_DS_.+$"
     tss_ctrl_label: "TSSCtrl"
 
