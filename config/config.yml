@@ -30,14 +30,14 @@ diff_expr:
   max_dist: 2e6
   formula: "~pert+scale(detected_genes)"
   n_ctrl: 3500
-  cell_batches: NULL
+  cell_batches: "cell_batches"
   padj_method: "fdr"
   padj_threshold: 0.05
   threads: 1
 
 # parameters for power simulations to estimate statistical power for every perturbation-gene pair
 power_simulations:
-  effect_sizes: [0.15, 0.25]
+  effect_sizes: 0.15
   remove_genes: NULL
   size_factors: "poscounts"
   fit_type: "parametric"

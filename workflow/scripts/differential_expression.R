@@ -1,7 +1,7 @@
 ## This snakemake R-script performs differential gene expression analysis for Perturb-seq
 ## discover regulatory interactions from perturbation - gene pairs
 
-#save.image("diff_expr.rda")
+# save.image("diff_expr.rda")
 # stop()
 
 # opening log file to collect all messages, warnings and errors
@@ -70,11 +70,6 @@ if (!is.null(snakemake@params$max_dist)) {
 de_function <- get(paste0("de_", method))
 
 
-
-
-
-
-### START ADDED LINES - REPLACING ORIGINAL CODE COMMENTED OUT BELOW
 # When finding differential expression by chromosome, some chromosomes may not have any perturbations - let's check if that's the case
 if (dim(altExp(sce, pert_level))[[1]] == 0) {
   message("No perturbations on this chromosome")
@@ -104,28 +99,6 @@ if (dim(altExp(sce, pert_level))[[1]] == 0) {
     select(-c(gene_end, pert_center)) %>% 
     dplyr::rename(gene_tss = gene_start, dist_to_tss = distance)
 }
-### END ADDED LINES - REPLACING ORIGINAL CODE COMMENTED OUT BELOW
-
-
-
-### START - CAN TECHNICALLY REMOVE, HOWEVER, THIS IS THE ORIGINAL CODE
-# # perform differential gene expression analysis
-# message("Performing differential expression tests.")
-# output <- test_differential_expression(sce, pert_level = pert_level,
-#                                        max_dist = max_dist,
-#                                        de_function = de_function,
-#                                        formula = snakemake@params$formula,
-#                                        n_ctrl = snakemake@params$n_ctrl,
-#                                        cell_batches = snakemake@params$cell_batches,
-#                                        p_adj_method = snakemake@params$p_adj_method)
-# 
-# 
-# # reformat output
-# output <- output %>% 
-#   select(-c(gene_end, pert_center)) %>% 
-#   dplyr::rename(gene_tss = gene_start, dist_to_tss = distance)
-### END - CAN TECHNICALLY REMOVE, HOWEVER, THIS IS THE ORIGINAL CODE
-
 
 
 # save DE output to file
