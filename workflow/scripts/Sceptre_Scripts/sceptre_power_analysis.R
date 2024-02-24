@@ -17,8 +17,8 @@ suppressPackageStartupMessages({
   library(BiocParallel)
   library(SingleCellExperiment)
   library(stringr)
-  source(file.path(snakemake@scriptdir, "R_functions/differential_expression_fun.R"))
-  source(file.path(snakemake@scriptdir, "R_functions/power_simulations_fun.R"))
+  source(file.path(snakemake@scriptdir, "../R_functions/differential_expression_fun.R"))
+  source(file.path(snakemake@scriptdir, "../R_functions/power_simulations_fun.R"))
 })
 
 
