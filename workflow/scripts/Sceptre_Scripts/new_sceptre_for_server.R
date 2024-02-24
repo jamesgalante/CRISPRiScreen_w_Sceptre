@@ -82,8 +82,9 @@ colnames(gRNA_groups_table_ej_use)[2] = "grna_target"
 
 
 # Format cell metadata for Sceptre input if cell_metadata exists
-cell_metadata = snakemake@params$cell_metadata
+cell_metadata <- snakemake@params$cell_metadata
 if (!is.null(cell_metadata)) {
+  cell_metadata <- fread(cell_metadata)
   extra_covariates <- data.frame(batch = as.factor(cell_metadata$cell_batches))
   rownames(extra_covariates) <- cell_metadata$cell_barcode
 }
