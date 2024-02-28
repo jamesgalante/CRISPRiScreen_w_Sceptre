@@ -1,4 +1,9 @@
 
+### Main issues with this script that need to be addressed
+### At some point, doubling of response_id, grna_target pairs is occurring - I deal with this in the combine_pwr_analysis script
+### But it would be useful to know why that's occurring in the first place
+### Also, I had to add this line: pert_guides <- pert_guides[pert_guides %in% rownames(grna_perts)]
+### Because some pert_guides were not in the rownames of grna_perts - I have a more detailed description of this below
 
 # save.image("sceptre_power_anal.rda")
 # message("Saved Image")
@@ -28,7 +33,6 @@ devtools::install_github("katsevich-lab/sceptre")
 library(sceptre)
 
 
-
 # Read the input arguments into variables
 message("Reading in snakemake variables")
 guide_file_name <- snakemake@input$guide_file_names
@@ -44,6 +48,11 @@ n_ctrl <- snakemake@params$n_ctrl
 cell_batches <- snakemake@params$cell_batches
 
 
+# Set variables
+message("Hard Coding variables")
+genes_iter = FALSE
+guide_sd = as.numeric(0.13)
+norm = "real"
 
 
 # Load in RDS files
@@ -51,20 +60,6 @@ message("Loading RDS files")
 sceptre_object = readRDS(sceptre_object_name)
 full_grna_matrix = readRDS(full_grna_matrix_name)
 full_response_matrix = readRDS(full_response_matrix_name)
-
-
-
-# Create the output directory for temporary files
-message("Creating output directory")
-full_path <- snakemake@output[[1]]
-base_directory <- dirname(full_path)
-outdir <- file.path(base_directory, "outputs")
-if (!dir.exists(outdir)) {
-  dir.create(outdir, recursive = TRUE)
-}
-
-# Add the output name for temporary files
-outname = paste0("sceptre_power_sim_effect_size_",effect,"_guide_subset_",basename(guide_file_name), "_n_perts_",n_pert,"_rep_",reps,"_center_effect_size_",center,".txt")
 
 
 # prepare data =====================================================================================
@@ -89,11 +84,6 @@ effect_size <- 1 - as.numeric(effect)
 # simulate Perturb-seq data and perform differential gene expression tests
 message("Performing power simulations.")
 
-# Set variables
-message("Hard Code variables")
-genes_iter = FALSE
-guide_sd = as.numeric(0.13)
-norm = "real"
 
 
 col_names <- colnames(colData(sce)) 
@@ -111,8 +101,6 @@ if (!is.numeric(guide_sd) | guide_sd < 0) {
 }
 
 # get required functions -------------------------------------------------------------------------
-#trying without sampling so that we can just use straight
-
 
 # get function to generate input data for one perturbation
 if (is.numeric(n_ctrl)) {
@@ -124,9 +112,6 @@ if (is.numeric(n_ctrl)) {
   stop("Invalid 'n_ctrl' argument.", call. = FALSE)
 }
 
-
-message("Following sceptre, not sampling control cells")
-
 if (norm == "real") {
   sim_function <- simulate_diff_expr_pert_real
 } else if (norm == "sim_nonpert") {
@@ -134,7 +119,6 @@ if (norm == "real") {
 } else {
   stop("Invalid 'norm' argument.", call. = FALSE)
 }
-
 
 
 # Function to get the simulate count matrix
