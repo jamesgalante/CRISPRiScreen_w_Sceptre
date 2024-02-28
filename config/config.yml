@@ -62,6 +62,8 @@ sceptre_pwr_anal:
   effect_size: 0.15
   reps: 20
   center: FALSE
+  n_ctrl: FALSE
+  cell_batches: "cell_batches"
 
 
 

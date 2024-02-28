@@ -40,6 +40,9 @@ n_pert <- snakemake@params$n_pert
 effect <- snakemake@params$effect_size
 reps <- snakemake@params$reps
 center <- snakemake@params$center
+n_ctrl <- snakemake@params$n_ctrl
+cell_batches <- snakemake@params$cell_batches
+
 
 
 
@@ -111,7 +114,6 @@ if (!is.numeric(guide_sd) | guide_sd < 0) {
 #trying without sampling so that we can just use straight
 
 
-n_ctrl = FALSE
 # get function to generate input data for one perturbation
 if (is.numeric(n_ctrl)) {
   pert_input_function <- pert_input_sampled
@@ -160,8 +162,9 @@ sim_counts_submit <- function(sce, effect_size_mat) {
 #get the discovery_pairs to test
 discovery_relevant_pairs_all = sceptre_object@discovery_pairs_with_info
 
-#guide_file = read.table(guide_file_name,header = F,sep = '\t')
-guide_file = read.table(guide_file_name,header = F,sep = '\t')
+# Read in the guide file without a header
+# Note that the first guide file split will have a header, so need to fix this
+guide_file = read.table(guide_file_name, header = F, sep = '\t')
 
 #discovery_relevant_pairs_in_guide_subset = discovery_relevant_pairs_all[discovery_relevant_pairs_all$grna_group %in% guide_file$V1,]
 discovery_relevant_pairs_in_guide_subset = discovery_relevant_pairs_all[discovery_relevant_pairs_all$grna_group %in% guide_file[[2]],]
@@ -182,14 +185,7 @@ if (n_pert == "all"){
   n_pert = length(perts)
 }
 
-# Creates temp file
-# cat(paste0(c("response_id","grna_target","n_nonzero_trt","n_nonzero_cntrl","pass_qc","p_value","log_2_fold_change","significant","rep\n"),collapse = "\t"),
-#     file = paste0(outdir,"/tempfile_",outname))
 
-
-### Basically, I have to get rid of the dispersion estimates that are NA. I added a line that I thought would help
-### in power_simulations_fun.R in the simulate_diff_expr_pert_real() function. BUt I still got the error I was dealing with
-### Also make sure to fix the for loops etc.
 
 # Runs each power analysis rep for one perturbation
 for (pert in perts){
@@ -204,7 +200,9 @@ for (pert in perts){
   
   # Generate the pert object
   pert_guides <- guide_targets[guide_targets$target_id == pert, "grna_id"]
-  pert_object <-  pert_input_function(pert, sce = sce, pert_level = pert_level)
+  
+  # Get the pert input
+  pert_object <- pert_input_function(pert, sce = sce, pert_level = pert_level, n_ctrl = n_ctrl, cell_batches = cell_batches)
   
   # get perturbation status and gRNA perturbations for all cells
   pert_status <- colData(pert_object)$pert
@@ -243,7 +241,6 @@ for (pert in perts){
   
   
   for (i in 1:as.numeric(reps)) {
-
     message("creating simulation for rep,",i)
     
     # Create effect size matrix (sampled from negative binomial distribution around es or 1)
@@ -260,38 +257,28 @@ for (pert in perts){
     es_mat_use = es_mat[,colnames(counts(pert_object))]
     
     
-    #so now we have the simulated object for the pertrubation with every gene it should be tested with (might need to change with sceptre flow))
+    # So now we have the simulated object for the pertrubation with every gene it should be tested with (might need to change with sceptre flow))
     message("Simulating Counts")
     sim_counts = sim_counts_submit(pert_object, effect_size_mat = es_mat_use)
     
-    
-    # Edge case if there's only one gene for perturbation to keep structure same
-    # message("Processing Edge Cases")
-    # if (length(pert_genes) > 1) {
-    #   full_response_matrix_sim = full_response_matrix[pert_genes,]
-    #   shared_cells = intersect(colnames(sim_counts),colnames(full_response_matrix))
-    #   full_response_matrix_sim[rownames(sim_counts),shared_cells] = sim_counts[,shared_cells]
-    # } else {
-    #   sim_counts_mx = as.matrix(sim_counts)
-    #   #need to add another row to keep the structure
-    #   if (pert_genes[1] != rownames(full_response_matrix)[1]){
-    #     alt_gene = rownames(full_response_matrix)[1]
-    #   } else {
-    #     alt_gene = rownames(full_response_matrix)[2]
-    #   }
-    #   full_response_matrix_sim = full_response_matrix[c(pert_genes,alt_gene),]
-    #   shared_cells = intersect(colnames(sim_counts_mx),colnames(full_response_matrix))
-    #   full_response_matrix_sim[pert_genes,shared_cells] = sim_counts_mx[pert_genes,shared_cells]
-    # }
-    
-    
-    
+    # Now let's run the discovery analysis
     message("Setting up sceptre object for Disovery Analysis")
-    #full_response_matrix_sim_sparse = as(as.matrix(full_response_matrix_sim),"RsparseMatrix")
-    full_response_matrix_sim_sparse = as(as.matrix(sim_counts),"RsparseMatrix")
-    sceptre_object_use = sceptre_object
-    sceptre_object_use@response_matrix =  full_response_matrix_sim_sparse
-    sceptre_object_use@discovery_pairs_with_info = discovery_relevant_pairs_pert
+    full_response_matrix_sim_sparse <- as(as.matrix(sim_counts),"RsparseMatrix")
+    sceptre_object_use <- sceptre_object
+    sceptre_object_use@response_matrix <- full_response_matrix_sim_sparse
+    sceptre_object_use@discovery_pairs_with_info <- discovery_relevant_pairs_pert
+    
+    # Fix the `cells_in_use` parameter for indexing when the n_ctrl is not FALSE
+    if (is.numeric(n_ctrl)) {
+      sceptre_object_use@cells_in_use <- seq(dim(full_response_matrix_sim_sparse)[[2]])
+      
+      # Only keep the covariate rows that are in the colnames of `full_response_matrix_sim_sparse`
+      sceptre_object_use@covariate_data_frame <- sceptre_object_use@covariate_data_frame[rownames(sceptre_object_use@covariate_data_frame) %in% colnames(full_response_matrix_sim_sparse),]
+      sceptre_object_use@covariate_matrix <- sceptre_object_use@covariate_matrix[rownames(sceptre_object_use@covariate_matrix) %in% colnames(full_response_matrix_sim_sparse),]
+      
+      sceptre_object_use@grna_assignments$grna_group_idxs[pert] <- list(seq(sum(colData(pert_object)$pert == 1)))
+      #rownames(colData(pert_object))[colData(pert_object)$pert == 1]
+    }
     
     message("Running discovery analysis")
     sceptre_object2 <- run_discovery_analysis(
@@ -306,7 +293,6 @@ for (pert in perts){
     )
     
     discovery_result$rep = i
-    #write.table(discovery_result, col.names=F, append = T, row.names = F,quote = F,sep = '\t',file = paste0(outdir,"/tempfile_",outname))
     discovery_results = data.frame(rbind(discovery_results,discovery_result))
   }
 }
