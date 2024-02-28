@@ -12,7 +12,7 @@ sink(log, type = "message")
 
 
 suppressPackageStartupMessages({
-  library(readr)
+  library(tidyverse)
 })
 
 
@@ -32,14 +32,19 @@ for (file_path in snakemake@input) {
 }
 
 # Combine all data frames into one
+message("Combining all data frames into one")
 combined_data <- do.call(rbind, data_list)
 
+# Remove duplicate rows based on "response_id", "grna_target", and "rep" columns
+message("Removing duplicate rows")
+filt_combined_data <- combined_data %>%
+  distinct(response_id, grna_target, rep, .keep_all = TRUE)
+message(paste0((nrow(combined_data) - nrow(filt_combined_data))/20, " duplicate rows removed"))
+
 # Write the combined data frame to the output file
-write_tsv(combined_data, snakemake@output[[1]])
+write_tsv(filt_combined_data, snakemake@output[[1]])
 
 message("Power analysis outputs combined successfully.")
-
-
 
 
 
