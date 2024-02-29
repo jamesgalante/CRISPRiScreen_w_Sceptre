@@ -104,26 +104,6 @@ rule split_guide_file:
         
         rm {input.gene_gRNA_group_pairs}.tmp
         """   
-    
-    
-    
-    # shell:
-    #     """
-    #     total_lines=$(wc -l < {input.gene_gRNA_group_pairs})
-    #     batches={params.batches}
-    #     lines_per_batch=$((total_lines / batches))
-    #     extra_lines=$((total_lines % batches))
-    #     if [ $extra_lines -gt 0 ]; then
-    #         lines_per_batch=$(($lines_per_batch + 1))
-    #     fi
-    #     split -d -l $lines_per_batch --numeric-suffixes=1 {input.gene_gRNA_group_pairs} resources/{wildcards.sample}/Sceptre/gene_gRNA_group_pairs_split_
-    #     for file in resources/{wildcards.sample}/Sceptre/gene_gRNA_group_pairs_split_*; do
-    #         # Remove leading zero for files numbered less than 10
-    #         new_name=$(echo $file | sed 's/split_0/split_/')
-    #         mv "$file" "${{new_name}}.txt"
-    #     done
-    #     """
-
 
 
 # This currently only processes CRISPRi runs that have been separated by chromosome for parallel processing
