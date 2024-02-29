@@ -252,6 +252,9 @@ for (pert in perts){
     sceptre_object_use@response_matrix <- full_response_matrix_sim_sparse
     sceptre_object_use@discovery_pairs_with_info <- discovery_relevant_pairs_pert
     
+    # Set the p adjustment method to none - multiple testing correction will be done when these are all combined
+    sceptre_object_use@multiple_testing_method <- "none"
+    
     # Fix the `cells_in_use` parameter for indexing when the n_ctrl is not FALSE
     if (is.numeric(n_ctrl)) {
       sceptre_object_use@cells_in_use <- seq(dim(full_response_matrix_sim_sparse)[[2]])
@@ -296,6 +299,7 @@ colnames(disp_outlier)[1] = "response_id"
 # add to output
 discovery_results <- left_join(discovery_results, disp_outlier, by = "response_id")
 discovery_results <- left_join(discovery_results, av_expr, by = "response_id")
+
 
 # save simulation output
 message("Saving output to file.")
