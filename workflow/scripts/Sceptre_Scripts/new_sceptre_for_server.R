@@ -69,6 +69,7 @@ saveRDS(gene_matrix, snakemake@output$gene_matrix)
 
 
 # I guess this is just always "no". I don't really know what it means - ask Evvie
+# `perturbation_matrix` doesn't actually exist in this script, so confirm with Evvie before removing
 if (guides_pre_assigned == "yes"){
   gRNA_groups_table_ej_use = gRNA_groups_table_ej[gRNA_groups_table_ej$grna_id %in% row.names(perturbation_matrix),]
 }
@@ -137,11 +138,11 @@ sceptre_object <- set_analysis_parameters(
   discovery_pairs = unique(discovery_pairs),
   positive_control_pairs = positive_control_pairs,
   side = side,
-  grna_integration_strategy = grna_integration_strategy
+  grna_integration_strategy = grna_integration_strategy,
 )
 
 print(sceptre_object)
-#log(response_n_nonzero) + log(response_n_umis) + log(grna_n_nonzero + 1) + log(grna_n_umis + 1) + batch is the default? wanna put it back to what I had
+
 
 
 
