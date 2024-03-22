@@ -629,16 +629,41 @@ simulate_tapseq_counts <- function(gene_means, gene_dispersions, cell_size_facto
 
 # function to randomly pick 1 expressed guide per cell
 sample_guide <- function(pert_status) {
+  num_cols <- dim(pert_status)[[2]]  # Number of columns
+  new_i <- numeric(0) 
+  new_p <- numeric(1)  
+  new_p[1] <- 0
+  new_x <- numeric(0)
   
-  # randomly pick one expressed guide
-  apply(pert_status, MARGIN = 2, FUN = function(x) {
-    out <- structure(rlang::rep_along(names(x), x = 0), names = names(x))
-    guides <- which(x > 0)
-    sampled_guide <- guides[sample(length(guides), size = 1)]
-    out[sampled_guide] <- 1
-    return(out)
-  })
+  return_vector <- numeric(0)
   
+  # Iterate over columns
+  for (col_idx in 1:num_cols) {
+    start_idx <- pert_status@p[col_idx] + 1
+    end_idx <- pert_status@p[col_idx + 1]
+    column_non_zeros <- end_idx - (start_idx - 1)
+    
+    if (column_non_zeros > 0) {
+      selected_i <- pert_status@i[start_idx + sample(0:(column_non_zeros-1), 1)]
+      new_i <- c(new_i, selected_i)  
+      return_vector <- c(return_vector, selected_i)
+      new_x <- c(new_x, 1) 
+      new_p <- c(new_p, length(new_i)) 
+    } else {
+      new_p <- c(new_p, tail(new_p, 1))
+      return_vector <- c(return_vector, -1)
+    }
+  }
+  
+  # Construct and return the new dgCMatrix
+  return(return_vector)
+  # Originally returned a sparse matrix but the outer function was simplified to deal with a more simple return
+  # Some operations in this function are therefore redundant because they were created for a sparsematrix return
+  # return(sparseMatrix(i = new_i + 1,  # Adjust back to 1-based indexing for R
+  #                     p = new_p,
+  #                     x = new_x,
+  #                     dims = dim(pert_status),
+  #                     dimnames = dimnames(pert_status)))
 }
 
 # create vector with the gRNA perturbation status for each cell
@@ -676,12 +701,10 @@ convert_pert_mat_to_vector <- function(pert_mat) {
   # randomly pick one perturbation if a cell has > 1
   pert_mat_sampled <- sample_guide(pert_mat)
   
-  # remove perturbation that do not occur anymore
-  pert_mat_sampled <- pert_mat_sampled[rowSums(pert_mat_sampled) > 0, ]
-  
   # create unique perturbation status for each perturbation and transform to vector
-  pert_mat_unique_status <- sweep(pert_mat_sampled, 1, seq_len(nrow(pert_mat_sampled)), "*")
-  colSums(pert_mat_unique_status)
+  row_of_pert <- pert_mat_sampled + 1
+  names(row_of_pert) <- colnames(pert_mat)
+  return(row_of_pert)
   
 }
 
