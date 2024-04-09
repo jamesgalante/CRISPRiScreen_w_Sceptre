@@ -52,22 +52,22 @@ rule add_sceptre_perturb_status:
     "../scripts/Sceptre_Scripts/add_sceptre_perturb_status.R"
 
 
-# # These rules are used to create inputs to the Sceptre Diffex and Power Analysis
-# rule create_sceptre_input_files:
-#   input:
-#     power_analysis_output = lambda wildcards: expand("results/" + wildcards.sample + "/output_{sd}gStd_{method}_{strategy}.tsv.gz", sd=["0.13"], method=["MAST"], strategy=["perCRE"], wildcards=wildcards),
-#     guide_targets_w_NT = lambda wildcards: config["samples"][wildcards.sample]["guide_targets_w_NT"]
-#   output:
-#     "resources/{sample}/Sceptre/gene_gRNA_group_pairs.txt", "resources/{sample}/Sceptre/gRNA_groups_table.txt"
-#   params:
-#     tss_ctrl_label = lambda wildcards: config["samples"][wildcards.sample]["tss_ctrl_label"]
-#   log: "results/{sample}/logs/create_sceptre_input_files.log"
-#   conda: "../envs/analyze_crispr_screen.yml"
-#   resources:
-#     mem = "32G",
-#     time = "5:00:00"
-#   script:
-#     "../scripts/Sceptre_Scripts/create_sceptre_input_files.R"
+# These rules are used to create inputs to the Sceptre Diffex and Power Analysis
+rule create_sceptre_input_files:
+  input:
+    power_analysis_output = lambda wildcards: expand("results/" + wildcards.sample + "/output_{sd}gStd_{method}_{strategy}.tsv.gz", sd=["0.13"], method=["MAST"], strategy=["perCRE"], wildcards=wildcards),
+    guide_targets_w_NT = lambda wildcards: config["samples"][wildcards.sample]["guide_targets_w_NT"]
+  output:
+    "resources/{sample}/Sceptre/gene_gRNA_group_pairs.txt", "resources/{sample}/Sceptre/gRNA_groups_table.txt"
+  params:
+    tss_ctrl_label = lambda wildcards: config["samples"][wildcards.sample]["tss_ctrl_label"]
+  log: "results/{sample}/logs/create_sceptre_input_files.log"
+  conda: "../envs/analyze_crispr_screen.yml"
+  resources:
+    mem = "32G",
+    time = "5:00:00"
+  script:
+    "../scripts/Sceptre_Scripts/create_sceptre_input_files.R"
 
 
 # Perform the discovery analysis
