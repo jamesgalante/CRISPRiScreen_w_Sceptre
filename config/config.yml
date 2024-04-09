@@ -64,6 +64,7 @@ sceptre_pwr_anal:
   center: FALSE
   n_ctrl: FALSE
   cell_batches: "cell_batches"
+  gene_format: "ensemble"
 
 
 

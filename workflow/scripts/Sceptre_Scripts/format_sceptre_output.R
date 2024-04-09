@@ -24,6 +24,7 @@ message("LOADING INPUTS ------------------------------------------")
 message("Loading in snakemake inputs")
 unformatted_power_analysis_results <- snakemake@input$power_analysis_output
 effect_size <- snakemake@params$effect_size
+gene_format <- snakemake@params$gene_format
 
 # Create the output directory for other outputs
 message("Creating output directory for extra files")
@@ -152,23 +153,28 @@ save_plot(p3, "power_v_expression.png")
 
 
 
-# Create a dataframe to combine with the differential expression and power analysis results
-# Read in the snakemake inputs
-message("CREATING DIST FILE -----------------------------------------------------")
-message("Reading in gene_gRNA_group_pairs file")
-gene_gRNA_group_pairs <- read_tsv(snakemake@input$gene_gRNA_group_pairs)
 
+
+# Create a dataframe to combine with the differential expression and power analysis results
 # Load gene annotation file
 message("Import annotation file")
 annot <- import(snakemake@params$annot)
 
-# Parse 'grna_group' to extract 'target_chr', 'target_start', 'target_end', and 'target_type
-message("filtering gene_gRNA_group_pairs")
+# Read in the snakemake inputs
+message("CREATING DIST FILE -----------------------------------------------------")
+message("Reading in gene_gRNA_group_pairs file")
+gene_gRNA_group_pairs <- read_tsv(snakemake@input$gene_gRNA_group_pairs)
+message("Filtering gene_gRNA_group_pairs to keep only enhancers")
 gene_gRNA_group_pairs_filt <- gene_gRNA_group_pairs %>%
+  filter(target_type == "enh")
+
+# Parse 'grna_group' to extract 'target_chr', 'target_start', 'target_end', and 'target_type
+message("Creating gene_gRNA_group_pairs target_chr, start, and end")
+gene_gRNA_group_pairs_filt <- gene_gRNA_group_pairs_filt %>%
   mutate(
     target_chr = sub("^(.*):.*$", "\\1", grna_group),
     target_start = as.numeric(sub("^.*:(.*)-.*$", "\\1", grna_group)),
-    target_end = as.numeric(sub("^.*-(.*)$", "\\1", grna_group)),
+    target_end = as.numeric(sub("^.*-(.*)$", "\\1", grna_group))
   ) %>%
   dplyr::rename(gene = response_id)
 
@@ -176,6 +182,24 @@ gene_gRNA_group_pairs_filt <- gene_gRNA_group_pairs %>%
 message("Filtering annotation file")
 annot_filt <- annot[annot$type == "gene",]
 annot_filt <- annot_filt[!grepl("PAR_Y", annot_filt$gene_id), ]
+
+# If using gene symbols, convert to ensemble id
+if (gene_format == "symbol") {
+  message("Converting gene symbols to ensemble ids")
+  
+  # Check if any of the genes in the gene_gRNA_group_pairs_filt table have multiple instances in the annotation file
+  if(any(duplicated(annot_filt$gene_name[annot_filt$gene_name %in% gene_gRNA_group_pairs_filt$gene]))) {
+    message("WARNING: One or more gene symbols may map to multiple ensemble numbers")
+  }
+  
+  # Creating the lookup table makes sure everything is 1:1
+  lookup_table <- setNames(sub("\\..*$", "", annot_filt$gene_id), annot_filt$gene_name)
+  gene_gRNA_group_pairs_filt$gene <- unname(lookup_table[gene_gRNA_group_pairs_filt$gene])
+  
+  if (any(is.na(gene_gRNA_group_pairs_filt$gene))) {
+    stop("Error: One or more gene symbols did not map to an ensembl number through the annotation file")
+  }
+}
 
 # Convert 'annot' to a data frame for merging if it's not already
 annot_df <- data.frame(
@@ -197,10 +221,19 @@ dist_file <- dist_file %>%
 
 
 
+
+
+
 # Combine dist_file, discovery_file, and power
 message("CREATING FINAL OUTPUT ----------------------------------------------")
 message("Loading discovery results")
 discovery_results <- read_tsv(snakemake@input$discovery_results)
+
+# Convert to ensemble ids
+if (gene_format == "symbol") {
+  message("Converting discovery results gene symbols to ensemble ids")
+  discovery_results$response_id <- unname(lookup_table[discovery_results$response_id])
+}
 
 # Filter the `power` df and change the name of the `power` column, so that it's compatible with ENCODE pipeline
 message("Filtering power")
@@ -208,6 +241,11 @@ power_filt <-  power[,c("response_id","grna_target", "disp_outlier_deseq2","aver
 colnames(power_filt)[colnames(power_filt) == "power"] <- paste0("power_effect_size_", effect_size*100)
 
 # Merge the `discovery_results` with `power_filt`
+if (gene_format == "symbol") {
+  message("Converting power_filt gene symbols to ensemble ids")
+  power_filt$response_id <- unname(lookup_table[power_filt$response_id])
+}
+
 message("Merging discovery results and power")
 discovery_w_power <-  merge(discovery_results, power_filt)
 

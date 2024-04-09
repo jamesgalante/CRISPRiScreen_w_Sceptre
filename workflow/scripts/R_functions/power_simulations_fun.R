@@ -182,10 +182,10 @@ simulate_diff_expr_rep <- function(pert, sim_function, rep, sce, pert_level, cel
   output <- replicate(
     n = rep,
     expr = simulate_diff_expr_try(pert, sim_function = sim_function, sce = sce,
-      pert_level = pert_level, cell_batches = cell_batches,
-      pert_input_function = pert_input_function, guide_targets = guide_targets,
-      genes_iter = genes_iter, effect_size = effect_size, guide_sd = guide_sd, center = center,
-      de_function = de_function, max_dist = max_dist, formula = formula, n_ctrl = n_ctrl),
+                                  pert_level = pert_level, cell_batches = cell_batches,
+                                  pert_input_function = pert_input_function, guide_targets = guide_targets,
+                                  genes_iter = genes_iter, effect_size = effect_size, guide_sd = guide_sd, center = center,
+                                  de_function = de_function, max_dist = max_dist, formula = formula, n_ctrl = n_ctrl),
     simplify = FALSE)
   
   # combine output into one data.frame
@@ -206,9 +206,9 @@ simulate_diff_expr_try <- function(pert, sim_function, sce, pert_level, cell_bat
   output <- tryCatch(
     withCallingHandlers({
       sim_function(pert, sce = sce, pert_level = pert_level, cell_batches = cell_batches,
-        pert_input_function = pert_input_function, guide_targets = guide_targets,
-        genes_iter = genes_iter, effect_size = effect_size, guide_sd = guide_sd, center = center,
-        de_function = de_function, max_dist = max_dist, formula = formula, n_ctrl = n_ctrl)
+                   pert_input_function = pert_input_function, guide_targets = guide_targets,
+                   genes_iter = genes_iter, effect_size = effect_size, guide_sd = guide_sd, center = center,
+                   de_function = de_function, max_dist = max_dist, formula = formula, n_ctrl = n_ctrl)
     }, warning = function(w) {
       message("For perturbation ", pert, ": ", w)
       invokeRestart("muffleWarning")
@@ -310,115 +310,115 @@ simulate_pert_object_real <- function(pert_object, pert_genes, effect_size,
   
   
   
-
   
-# ##### START TEMP ADDED
-# 
-#   # Quick print on how many NA rows there are
-#   df <- as.data.frame(as.matrix(assay(sim_object)))
-#   # Calculate the number of rows with only NA values
-#   na_rows_count <- sum(apply(df, 1, function(x) all(is.na(x))))
-#   # Print the result
-#   message(sprintf("There are %d/%d NA rows", na_rows_count, nrow(df)))
-# 
-#   # Specify if you want to include only controls, only perturbed, or both
-#   include_controls <- TRUE
-#   include_perturbed <- FALSE
-# 
-#   # For controls only, let's subset sim_object
-#   if (include_controls & !include_perturbed) {
-#     message("Keeping only Controls")
-#   } else if (!include_controls & include_perturbed) {
-#     message("Keeping only Perturbed")
-#   }
-# 
-# 
-#   for (i in seq(from = 1, to = nrow(sim_object), by = 9)) {
-# 
-#     # Specify what gene you want to start at and how many genes you want to plot
-#     N1 <- i
-#     N <- 9
-# 
-#     # Get the end gene number dependent on the given range `N`
-#     if ((N1+N-1) > nrow(sim_object)) {
-#       N <- nrow(sim_object)
-#     } else {
-#       N <- N1 + N - 1
-#     }
-# 
-#     # For controls only, let's subset sim_object
-#     if (include_controls & !include_perturbed) {
-#       filt_sim_object <- sim_object[,sim_object$pert == 0]
-#     } else if (!include_controls & include_perturbed) {
-#       filt_sim_object <- sim_object[,sim_object$pert == 1]
-#     } else {
-#       filt_sim_object <- sim_object
-#     }
-# 
-#     # Subsetting the sce object to match sim_object dimensions
-#     rownames_to_use <- rownames(assay(filt_sim_object))
-#     colnames_to_use <- colnames(filt_sim_object)
-#     sce_subset <- sce[, colnames_to_use]
-#     sce_subset <- sce_subset[rownames_to_use, ]
-# 
-#     # Subsetting the first N genes for both simulated and sce data
-#     df_sim <- as.data.frame(as.matrix(assay(filt_sim_object)[N1:N, ]))
-#     df_sce <- as.data.frame(as.matrix(assay(sce_subset)[N1:N, ]))
-# 
-#     # Add the 'Gene' and 'Source' columns
-#     df_sim$Gene <- rownames(df_sim)
-#     df_sim$Source <- 'Simulated'
-#     df_sce$Gene <- rownames(df_sce)
-#     df_sce$Source <- 'Original'
-# 
-#     # Melt the data frames for ggplot2
-#     melted_data <- rbind(
-#       melt(df_sim, id.vars = c("Gene", "Source")),
-#       melt(df_sce, id.vars = c("Gene", "Source"))
-#     )
-# 
-#     # Construct the title based on the specified conditions
-#     title_part1 <- paste("UMI Count Distributions for Genes", N1, "to", N)
-# 
-#     # Determine the condition (controls, perturbed, or both) and append it to the title
-#     condition <- if (include_controls & !include_perturbed) {
-#       " - Only Controls"
-#     } else if (!include_controls & include_perturbed) {
-#       " - Only Perturbed"
-#     } else if (include_controls & include_perturbed) {
-#       " - Controls and Perturbed"
-#     } else {
-#       " - No Data Selected"
-#     }
-# 
-#     full_title <- paste(title_part1, condition)
-# 
-#     # Now, use ggplot to plot with the dynamic title
-#     my_plot <- ggplot(melted_data, aes(x = value, fill = Source)) +
-#       geom_histogram(position = position_dodge(width = 0.9), binwidth = 1, aes(y = after_stat(count))) +
-#       facet_wrap(~ Gene, scales = 'free') +
-#       theme_minimal() +
-#       labs(x = "UMI Count", y = "Number of Cells", title = full_title) +
-#       theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-#       scale_fill_manual(values = c("Original" = "blue", "Simulated" = "red"))
-#     print(my_plot)
-# 
-#   }
-# 
-# 
-# # Also need to retrieve how many NA's there were
-# 
-# 
-#   # This is the same as the used ggplot, except it doesn't have a malleable x and y axis range
-#   # Now, use ggplot to plot with updated syntax
-#   # ggplot(melted_data, aes(x = value, fill = Source)) +
-#   #   geom_histogram(position = position_dodge(width = 0.9), binwidth = 1, aes(y = ..count..)) +  # Adjust position_dodge width as needed
-#   #   facet_wrap(~ Gene, scales = 'free_y') +
-#   #   theme_minimal() +
-#   #   labs(x = "UMI Count", y = "Number of Cells", title = "UMI Count Distributions for the First N Genes") +
-#   #   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-#   #   scale_fill_manual(values = c("Original" = "blue", "Simulated" = "red"))  # Set the colors you prefer
-# ##### END TEMP ADDED
+  
+  # ##### START TEMP ADDED
+  # 
+  #   # Quick print on how many NA rows there are
+  #   df <- as.data.frame(as.matrix(assay(sim_object)))
+  #   # Calculate the number of rows with only NA values
+  #   na_rows_count <- sum(apply(df, 1, function(x) all(is.na(x))))
+  #   # Print the result
+  #   message(sprintf("There are %d/%d NA rows", na_rows_count, nrow(df)))
+  # 
+  #   # Specify if you want to include only controls, only perturbed, or both
+  #   include_controls <- TRUE
+  #   include_perturbed <- FALSE
+  # 
+  #   # For controls only, let's subset sim_object
+  #   if (include_controls & !include_perturbed) {
+  #     message("Keeping only Controls")
+  #   } else if (!include_controls & include_perturbed) {
+  #     message("Keeping only Perturbed")
+  #   }
+  # 
+  # 
+  #   for (i in seq(from = 1, to = nrow(sim_object), by = 9)) {
+  # 
+  #     # Specify what gene you want to start at and how many genes you want to plot
+  #     N1 <- i
+  #     N <- 9
+  # 
+  #     # Get the end gene number dependent on the given range `N`
+  #     if ((N1+N-1) > nrow(sim_object)) {
+  #       N <- nrow(sim_object)
+  #     } else {
+  #       N <- N1 + N - 1
+  #     }
+  # 
+  #     # For controls only, let's subset sim_object
+  #     if (include_controls & !include_perturbed) {
+  #       filt_sim_object <- sim_object[,sim_object$pert == 0]
+  #     } else if (!include_controls & include_perturbed) {
+  #       filt_sim_object <- sim_object[,sim_object$pert == 1]
+  #     } else {
+  #       filt_sim_object <- sim_object
+  #     }
+  # 
+  #     # Subsetting the sce object to match sim_object dimensions
+  #     rownames_to_use <- rownames(assay(filt_sim_object))
+  #     colnames_to_use <- colnames(filt_sim_object)
+  #     sce_subset <- sce[, colnames_to_use]
+  #     sce_subset <- sce_subset[rownames_to_use, ]
+  # 
+  #     # Subsetting the first N genes for both simulated and sce data
+  #     df_sim <- as.data.frame(as.matrix(assay(filt_sim_object)[N1:N, ]))
+  #     df_sce <- as.data.frame(as.matrix(assay(sce_subset)[N1:N, ]))
+  # 
+  #     # Add the 'Gene' and 'Source' columns
+  #     df_sim$Gene <- rownames(df_sim)
+  #     df_sim$Source <- 'Simulated'
+  #     df_sce$Gene <- rownames(df_sce)
+  #     df_sce$Source <- 'Original'
+  # 
+  #     # Melt the data frames for ggplot2
+  #     melted_data <- rbind(
+  #       melt(df_sim, id.vars = c("Gene", "Source")),
+  #       melt(df_sce, id.vars = c("Gene", "Source"))
+  #     )
+  # 
+  #     # Construct the title based on the specified conditions
+  #     title_part1 <- paste("UMI Count Distributions for Genes", N1, "to", N)
+  # 
+  #     # Determine the condition (controls, perturbed, or both) and append it to the title
+  #     condition <- if (include_controls & !include_perturbed) {
+  #       " - Only Controls"
+  #     } else if (!include_controls & include_perturbed) {
+  #       " - Only Perturbed"
+  #     } else if (include_controls & include_perturbed) {
+  #       " - Controls and Perturbed"
+  #     } else {
+  #       " - No Data Selected"
+  #     }
+  # 
+  #     full_title <- paste(title_part1, condition)
+  # 
+  #     # Now, use ggplot to plot with the dynamic title
+  #     my_plot <- ggplot(melted_data, aes(x = value, fill = Source)) +
+  #       geom_histogram(position = position_dodge(width = 0.9), binwidth = 1, aes(y = after_stat(count))) +
+  #       facet_wrap(~ Gene, scales = 'free') +
+  #       theme_minimal() +
+  #       labs(x = "UMI Count", y = "Number of Cells", title = full_title) +
+  #       theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  #       scale_fill_manual(values = c("Original" = "blue", "Simulated" = "red"))
+  #     print(my_plot)
+  # 
+  #   }
+  # 
+  # 
+  # # Also need to retrieve how many NA's there were
+  # 
+  # 
+  #   # This is the same as the used ggplot, except it doesn't have a malleable x and y axis range
+  #   # Now, use ggplot to plot with updated syntax
+  #   # ggplot(melted_data, aes(x = value, fill = Source)) +
+  #   #   geom_histogram(position = position_dodge(width = 0.9), binwidth = 1, aes(y = ..count..)) +  # Adjust position_dodge width as needed
+  #   #   facet_wrap(~ Gene, scales = 'free_y') +
+  #   #   theme_minimal() +
+  #   #   labs(x = "UMI Count", y = "Number of Cells", title = "UMI Count Distributions for the First N Genes") +
+  #   #   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  #   #   scale_fill_manual(values = c("Original" = "blue", "Simulated" = "red"))  # Set the colors you prefer
+  # ##### END TEMP ADDED
   
   
   
@@ -617,12 +617,12 @@ simulate_tapseq_counts <- function(gene_means, gene_dispersions, cell_size_facto
   
   # inject perturbation effects by element-wise product of mu and effect_size_mat
   mu <- mu * effect_size_mat
-
+  
   # simulate counts
   message("Simulating tapseq counts")
   Matrix(rnbinom(n_cells * n_genes, mu = mu, size = 1 / gene_dispersions), ncol = n_cells,
          dimnames = list(gene_ids, cell_ids))
-
+  
 }
 
 # guide-guide variability specific functions -------------------------------------------------------

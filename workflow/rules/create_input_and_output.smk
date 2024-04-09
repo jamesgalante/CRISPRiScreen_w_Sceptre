@@ -84,7 +84,8 @@ rule format_sceptre_output:
     "results/{sample}/final_sceptre_output/output_0.13gStd_MAST_perCRE.tsv"
   params:
     effect_size = config["sceptre_pwr_anal"]["effect_size"],
-    annot = lambda wildcards: config["samples"][wildcards.sample]["annot"]
+    annot = lambda wildcards: config["samples"][wildcards.sample]["annot"],
+    gene_format = config["sceptre_pwr_anal"]["gene_format"]
   log: "results/{sample}/logs/format_sceptre_output.log"
   conda: "../envs/sceptre_pwr_env.yml"
   resources:

@@ -23,7 +23,7 @@ suppressPackageStartupMessages({
 })
 
 # Load Sceptre
-devtools::install_github("katsevich-lab/sceptre")
+devtools::install_github("katsevich-lab/sceptre", ref = "60922bf")
 library(sceptre)
 
 # Load the arguments

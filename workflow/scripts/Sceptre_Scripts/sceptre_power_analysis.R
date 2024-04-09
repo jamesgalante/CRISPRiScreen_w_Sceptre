@@ -5,7 +5,7 @@
 ### Also, I had to add this line: pert_guides <- pert_guides[pert_guides %in% rownames(grna_perts)]
 ### Because some pert_guides were not in the rownames of grna_perts - I have a more detailed description of this below
 
-# save.image("sceptre_power_anal.rda")
+# save.image("scteptre_power_anal.rda")
 # message("Saved Image")
 # stop()
 
@@ -29,7 +29,7 @@ suppressPackageStartupMessages({
 
 # Load Sceptre
 message("Loading Sceptre")
-devtools::install_github("katsevich-lab/sceptre")
+devtools::install_github("katsevich-lab/sceptre", ref = "60922bf")
 library(sceptre)
 
 
@@ -188,9 +188,6 @@ for (pert in perts){
       next
     }
     
-    # Remove any rows with NA dispersion values
-    filtered_pert_object <- pert_object[!is.na(rowData(pert_object)$dispersion), ]
-    
     
     
     for (i in 1:as.numeric(reps)) {
@@ -212,13 +209,20 @@ for (pert in perts){
       
       # So now we have the simulated object for the pertrubation with every gene it should be tested with (might need to change with sceptre flow))
       message("Simulating Counts")
-      sim_counts = sim_counts_submit(pert_object, effect_size_mat = es_mat_use)
+      sim_counts <- sim_counts_submit(pert_object, effect_size_mat = es_mat_use)
+      
+      
       
       # Now let's run the discovery analysis
       message("Setting up sceptre object for Disovery Analysis")
       full_response_matrix_sim_sparse <- as(as.matrix(sim_counts),"RsparseMatrix")
+      # full_response_matrix_sim_sparse <- as(as.matrix(full_response_matrix_sim),"RsparseMatrix")
       sceptre_object_use <- sceptre_object
+      message("The class of what's being assigned to the response matrix")
+      print(packageVersion("sceptre"))
+      print(class(full_response_matrix_sim_sparse))
       sceptre_object_use@response_matrix <- full_response_matrix_sim_sparse
+      message("Assignment fine")
       sceptre_object_use@discovery_pairs_with_info <- discovery_relevant_pairs_pert
       
       # Fix the `cells_in_use` parameter for indexing when the n_ctrl is not FALSE
