@@ -110,7 +110,7 @@ rule split_guide_file:
     batches = config['sceptre_pwr_anal']['batches']
   log: "results/{sample}/logs/split_guide_file.log"
   conda:
-    "../envs/sceptre_pwr_env.yml"
+    "../envs/analyze_crispr_screen.yml"
   resources:
     mem = "8G",
     time = "1:00:00"
