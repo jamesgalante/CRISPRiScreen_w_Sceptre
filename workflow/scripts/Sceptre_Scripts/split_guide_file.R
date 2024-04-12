@@ -24,15 +24,17 @@ output_files <- snakemake@output
 
 # Read the input dataframe
 gene_gRNA_group_pairs <- read.csv(input_file, sep="\t", header=TRUE)
+gene_gRNA_group_pairs <- gene_gRNA_group_pairs %>%
+  dplyr::filter(target_type == "enh")
 
 # Your logic to evenly distribute grna_group across batches
 # Calculate the counts of each grna_group
 group_counts <- gene_gRNA_group_pairs %>%
-  count(grna_group) %>%
-  arrange(desc(n))
+  dplyr::count(grna_group) %>%
+  dplyr::arrange(desc(n))
 
 # Calculate the target number of unique grna_group for each split
-total_unique_groups <- n_distinct(gene_gRNA_group_pairs$grna_group)
+total_unique_groups <- dplyr::n_distinct(gene_gRNA_group_pairs$grna_group)
 target_per_split <- ceiling(total_unique_groups / batches)
 
 # Initialize splits
@@ -41,12 +43,12 @@ names(splits) <- paste0("split", seq_len(batches))
 
 # Distribute grna_group to splits trying to even out the number of unique values
 for (i in seq_len(nrow(group_counts))) {
-  split_counts <- sapply(splits, function(x) n_distinct(x$grna_group, na.rm = TRUE))
+  split_counts <- sapply(splits, function(x) dplyr::n_distinct(x$grna_group, na.rm = TRUE))
   split_with_least <- which.min(split_counts)
   
-  splits[[split_with_least]] <- bind_rows(splits[[split_with_least]], 
+  splits[[split_with_least]] <- dplyr::bind_rows(splits[[split_with_least]], 
                                           gene_gRNA_group_pairs %>%
-                                            filter(grna_group == group_counts$grna_group[i]))
+                                            dplyr::filter(grna_group == group_counts$grna_group[i]))
 }
 
 # Write each split to the corresponding output file
