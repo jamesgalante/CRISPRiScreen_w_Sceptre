@@ -80,6 +80,7 @@ if ("pert" %in% col_names) stop("'pert' cannot be a colData name, please rename.
 # Loading guide file
 message("Loading guide file")
 guide_file <- read.table(guide_file_name, header = F, sep = '\t')
+
 # Set the column names for the split guide_file
 colnames(guide_file) <- c("response_id", "grna_group", "target_type")
 
@@ -133,136 +134,109 @@ perts <- intersect(guide_file$grna_group, discovery_pairs_which_pass_qc$grna_gro
 discovery_results <- data.frame()
 # Runs each power analysis rep for one perturbation
 for (pert in perts){
-  
-  repeat_loop <- TRUE
-  
-  # There's a slight chance that the simulated counts for a perturbation cause glm.fit to not converge
-  # We include a while loop to redo the for loop pert simulation when this occurs because the p_value > 2
-  # Let's make sure we don't run into an infinite error
-  number_of_repeats <- 0
-  
-  while (repeat_loop) {
     
-    if (number_of_repeats > 10) {
-      message(paste0("Ran into an error with ", pert, ". As it consistently simulated counts which the glm couldn't fit"))
-      break
+  # Get a list of the relevant discovery pairs
+  discovery_relevant_pairs_pert <- discovery_pairs_which_pass_qc[discovery_pairs_which_pass_qc$grna_group == pert,]
+
+  # Get all the guides that target the current `pert`
+  pert_guides <- sceptre_object@grna_target_data_frame[sceptre_object@grna_target_data_frame$grna_target == pert, "grna_id"]
+
+  # Get the pert input
+  pert_object <- pert_input_function(pert, sce = sce, pert_level = pert_level, n_ctrl = n_ctrl, cell_batches = cell_batches)
+
+  # get perturbation status and gRNA perturbations for all cells
+  pert_status <- colData(pert_object)$pert
+  grna_perts <- assay(altExp(pert_object, "grna_perts"), "perts")
+
+
+  ### Getting a weird error here where a `pert_guide` is not in the `grna_perts` matrix.
+  ### I have no idea why this would happen to be honest, but I think whatever happens, it's happening before this script
+  ### The sce object that gets imported in this pipeline for instance, also doesn't have the specific `pert_guide`
+  ### But it exists in the original perturb_status.txt.gz
+  ### Perhaps something occurs when I recombine all the dispersion estimates
+  ### Perhaps also have to figure out where grna perts are getting filtered and see what's going on there
+  ### For now, I'm just going to add a line to remove all pert_guides that aren't in `grna_perts`
+  pert_guides <- pert_guides[pert_guides %in% rownames(grna_perts)]
+  grna_pert_status <- create_guide_pert_status(pert_status, grna_perts = grna_perts,
+                                               pert_guides = pert_guides)
+
+  pert_genes <- discovery_relevant_pairs_pert$response_id
+
+  pert_object <- pert_object[pert_genes,]
+
+  effect_sizes <- structure(rep(1, nrow(pert_object)), names = rownames(pert_object))
+
+  effect_sizes[pert_genes] <- effect_size #does this only for the genes you care about will need to adjust to match sceptre
+
+
+  # Make sure there are non NA dispersion estimates in the pert_object
+  if (all(is.na(rowData(pert_object)$dispersion))) {
+    message(paste0("Skipping ", pert, ". No valid dispersion values."))
+    next
+  }
+
+
+
+  for (i in 1:as.numeric(reps)) {
+    message("creating simulation for rep,",i)
+
+    # Create effect size matrix (sampled from negative binomial distribution around es or 1)
+    es_mat <- create_effect_size_matrix(grna_pert_status, pert_guides = pert_guides,
+                                        gene_effect_sizes = effect_sizes, guide_sd = guide_sd)
+
+    # center effect sizes on specified gene-level effect sizes
+    if (center == TRUE) {
+      es_mat <- center_effect_size_matrix(es_mat, pert_status = pert_status,
+                                          gene_effect_sizes = effect_sizes)
     }
+
+    # Reorder columns
+    es_mat_use = es_mat[,colnames(counts(pert_object))]
+
+
+    # So now we have the simulated object for the pertrubation with every gene it should be tested with (might need to change with sceptre flow))
+    message("Simulating Counts")
+    sim_counts <- sim_counts_submit(pert_object, effect_size_mat = es_mat_use)
+
+
+
+    # Now let's run the discovery analysis
+    message("Setting up sceptre object for Disovery Analysis")
+    full_response_matrix_sim_sparse <- as(as.matrix(sim_counts),"RsparseMatrix")
+    sceptre_object_use <- sceptre_object
     
-    # Get a list of the relevant discovery pairs
-    discovery_relevant_pairs_pert <- discovery_pairs_which_pass_qc[discovery_pairs_which_pass_qc$grna_group == pert,]
+    message("The class of what's being assigned to the response matrix")
+    sceptre_object_use@response_matrix <- full_response_matrix_sim_sparse
+    message("Assignment fine")
     
-    # Get all the guides that target the current `pert`
-    pert_guides <- sceptre_object@grna_target_data_frame[sceptre_object@grna_target_data_frame$grna_target == pert, "grna_id"]
-    
-    # Get the pert input
-    pert_object <- pert_input_function(pert, sce = sce, pert_level = pert_level, n_ctrl = n_ctrl, cell_batches = cell_batches)
-    
-    # get perturbation status and gRNA perturbations for all cells
-    pert_status <- colData(pert_object)$pert
-    grna_perts <- assay(altExp(pert_object, "grna_perts"), "perts")
-    
-    
-    ### Getting a weird error here where a `pert_guide` is not in the `grna_perts` matrix.
-    ### I have no idea why this would happen to be honest, but I think whatever happens, it's happening before this script
-    ### The sce object that gets imported in this pipeline for instance, also doesn't have the specific `pert_guide`
-    ### But it exists in the original perturb_status.txt.gz
-    ### Perhaps something occurs when I recombine all the dispersion estimates
-    ### Perhaps also have to figure out where grna perts are getting filtered and see what's going on there
-    ### For now, I'm just going to add a line to remove all pert_guides that aren't in `grna_perts`
-    pert_guides <- pert_guides[pert_guides %in% rownames(grna_perts)]
-    grna_pert_status <- create_guide_pert_status(pert_status, grna_perts = grna_perts,
-                                                 pert_guides = pert_guides)
-    
-    pert_genes = discovery_relevant_pairs_pert$response_id
-    
-    pert_object = pert_object[pert_genes,]
-    
-    effect_sizes <- structure(rep(1, nrow(pert_object)), names = rownames(pert_object))
-    
-    effect_sizes[pert_genes] <- effect_size #does this only for the genes you care about will need to adjust to match sceptre
-    
-    
-    # Make sure there are non NA dispersion estimates in the pert_object
-    if (all(is.na(rowData(pert_object)$dispersion))) {
-      message(paste0("Skipping ", pert, ". No valid dispersion values."))
-      next
+    sceptre_object_use@discovery_pairs_with_info <- discovery_relevant_pairs_pert
+
+    # Fix the `cells_in_use` parameter for indexing when the n_ctrl is not FALSE
+    if (is.numeric(n_ctrl)) {
+      sceptre_object_use@cells_in_use <- seq(dim(full_response_matrix_sim_sparse)[[2]])
+
+      # Only keep the covariate rows that are in the colnames of `full_response_matrix_sim_sparse`
+      sceptre_object_use@covariate_data_frame <- sceptre_object_use@covariate_data_frame[rownames(sceptre_object_use@covariate_data_frame) %in% colnames(full_response_matrix_sim_sparse),]
+      sceptre_object_use@covariate_matrix <- sceptre_object_use@covariate_matrix[rownames(sceptre_object_use@covariate_matrix) %in% colnames(full_response_matrix_sim_sparse),]
+
+      sceptre_object_use@grna_assignments$grna_group_idxs[pert] <- list(seq(sum(colData(pert_object)$pert == 1)))
     }
-    
-    
-    
-    for (i in 1:as.numeric(reps)) {
-      message("creating simulation for rep,",i)
-      
-      # Create effect size matrix (sampled from negative binomial distribution around es or 1)
-      es_mat <- create_effect_size_matrix(grna_pert_status, pert_guides = pert_guides,
-                                          gene_effect_sizes = effect_sizes, guide_sd = guide_sd)
-      
-      # center effect sizes on specified gene-level effect sizes
-      if (center == TRUE) {
-        es_mat <- center_effect_size_matrix(es_mat, pert_status = pert_status,
-                                            gene_effect_sizes = effect_sizes)
-      }
-      
-      # Reorder columns
-      es_mat_use = es_mat[,colnames(counts(pert_object))]
-      
-      
-      # So now we have the simulated object for the pertrubation with every gene it should be tested with (might need to change with sceptre flow))
-      message("Simulating Counts")
-      sim_counts <- sim_counts_submit(pert_object, effect_size_mat = es_mat_use)
-      
-      
-      
-      # Now let's run the discovery analysis
-      message("Setting up sceptre object for Disovery Analysis")
-      full_response_matrix_sim_sparse <- as(as.matrix(sim_counts),"RsparseMatrix")
-      # full_response_matrix_sim_sparse <- as(as.matrix(full_response_matrix_sim),"RsparseMatrix")
-      sceptre_object_use <- sceptre_object
-      message("The class of what's being assigned to the response matrix")
-      print(packageVersion("sceptre"))
-      print(class(full_response_matrix_sim_sparse))
-      sceptre_object_use@response_matrix <- full_response_matrix_sim_sparse
-      message("Assignment fine")
-      sceptre_object_use@discovery_pairs_with_info <- discovery_relevant_pairs_pert
-      
-      # Fix the `cells_in_use` parameter for indexing when the n_ctrl is not FALSE
-      if (is.numeric(n_ctrl)) {
-        sceptre_object_use@cells_in_use <- seq(dim(full_response_matrix_sim_sparse)[[2]])
-        
-        # Only keep the covariate rows that are in the colnames of `full_response_matrix_sim_sparse`
-        sceptre_object_use@covariate_data_frame <- sceptre_object_use@covariate_data_frame[rownames(sceptre_object_use@covariate_data_frame) %in% colnames(full_response_matrix_sim_sparse),]
-        sceptre_object_use@covariate_matrix <- sceptre_object_use@covariate_matrix[rownames(sceptre_object_use@covariate_matrix) %in% colnames(full_response_matrix_sim_sparse),]
-        
-        sceptre_object_use@grna_assignments$grna_group_idxs[pert] <- list(seq(sum(colData(pert_object)$pert == 1)))
-        #rownames(colData(pert_object))[colData(pert_object)$pert == 1]
-      }
-      
-      message("Running discovery analysis")
-      sceptre_object2 <- run_discovery_analysis(
-        sceptre_object = sceptre_object_use,
-        parallel = FALSE
-      )
-      
-      message("Returning discovery results")
-      discovery_result <- get_result(
-        sceptre_object = sceptre_object2,
-        analysis = "run_discovery_analysis"
-      )
-      
-      # Check if any p_value is greater than 1
-      if (any(discovery_result$p_value > 1)) {
-        message(paste0("Repeating analysis for ", pert, " due to p_value > 1."))
-        number_of_repeats <- number_of_repeats + 1
-        # The loop will repeat
-      } else {
-        # The loop will not repeat
-        repeat_loop <- FALSE
-        
-        # If everything is good, add to the final results
-        discovery_result$rep <- i
-        discovery_results <- data.frame(rbind(discovery_results, discovery_result))
-      }
-    }
+
+    message("Running discovery analysis")
+    sceptre_object2 <- run_discovery_analysis(
+      sceptre_object = sceptre_object_use,
+      parallel = FALSE
+    )
+
+    message("Returning discovery results")
+    discovery_result <- get_result(
+      sceptre_object = sceptre_object2,
+      analysis = "run_discovery_analysis"
+    )
+
+    discovery_result$rep <- i
+    discovery_results <- data.frame(rbind(discovery_results, discovery_result))
+
   }
 }
 
