@@ -629,12 +629,9 @@ simulate_tapseq_counts <- function(gene_means, gene_dispersions, cell_size_facto
 
 # function to randomly pick 1 expressed guide per cell
 sample_guide <- function(pert_status) {
-  num_cols <- dim(pert_status)[[2]]  # Number of columns
-  new_i <- numeric(0) 
-  new_p <- numeric(1)  
-  new_p[1] <- 0
-  new_x <- numeric(0)
   
+  # Get the number of colums and initialize a return vector
+  num_cols <- dim(pert_status)[[2]]
   return_vector <- numeric(0)
   
   # Iterate over columns
@@ -645,25 +642,15 @@ sample_guide <- function(pert_status) {
     
     if (column_non_zeros > 0) {
       selected_i <- pert_status@i[start_idx + sample(0:(column_non_zeros-1), 1)]
-      new_i <- c(new_i, selected_i)  
       return_vector <- c(return_vector, selected_i)
-      new_x <- c(new_x, 1) 
-      new_p <- c(new_p, length(new_i)) 
     } else {
-      new_p <- c(new_p, tail(new_p, 1))
+      # Add -1 because the vector gets 1 added in convert_pert_mat_to_vector
       return_vector <- c(return_vector, -1)
     }
   }
   
-  # Construct and return the new dgCMatrix
+  # Return the sampled vector
   return(return_vector)
-  # Originally returned a sparse matrix but the outer function was simplified to deal with a more simple return
-  # Some operations in this function are therefore redundant because they were created for a sparsematrix return
-  # return(sparseMatrix(i = new_i + 1,  # Adjust back to 1-based indexing for R
-  #                     p = new_p,
-  #                     x = new_x,
-  #                     dims = dim(pert_status),
-  #                     dimnames = dimnames(pert_status)))
 }
 
 # create vector with the gRNA perturbation status for each cell
